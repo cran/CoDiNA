@@ -1,0 +1,29 @@
+year <- 2018
+note <- sprintf("R package version %s", meta$Version)
+
+bibentry(bibtype = "Manual",
+         title = "CoDiNA: Co-expression Differential Network Analysis",
+         author = c(person("Deisy", "Morselli Gysi"),
+                    person("Tiago", "de Miranda Fragoso"),
+                    person("Eivind", "Almaas"),
+                    person("Katja", "Nowick")),
+         year = year,
+         note = note,
+         url = "https://CRAN.R-project.org/package=CoDiNA")
+
+bibentry(bibtype = "Manual",
+   author = c(person("Deisy", "Morselli Gysi"),
+                    person("Tiago", "de Miranda Fragoso"),
+                    person("Eivind", "Almaas"),
+                    person("Katja", "Nowick")),
+    title = "CoDiNA: an R Package for Co-expression Differential Network Analysis in n Dimensions",
+  journal = "ArXiv e-prints",
+archivePrefix = "arXiv",
+   eprint = "{1802.00828}",
+ primaryClass = "stat.CO",
+ keywords = "{Statistics - Computation, Quantitative Biology - Molecular Networks, Statistics - Applications}",
+     year = "2018",
+    month = "feb",
+   adsurl = "{http://adsabs.harvard.edu/abs/2018arXiv180200828M}",
+url = "https://arxiv.org/abs/1802.00828")
+
