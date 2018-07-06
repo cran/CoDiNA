@@ -4,7 +4,7 @@
 \alias{PhiCategory}
 \title{PhiCategory}
 \usage{
-PhiCategory(Base, n)
+PhiCategory(Base, n, CAT_BASE = CAT_BASE)
 }
 \arguments{
 \item{Base}{data.frame to be categorized}

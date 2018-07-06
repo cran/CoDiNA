@@ -8,13 +8,13 @@
 #' @method summary CoDiNA
 #' @export
 #' @examples
-#' set.seed(123)
+
 #' Nodes = LETTERS[1:10]
 #' Net1 = data.frame(Node.1 = sample(Nodes) , Node.2 = sample(Nodes), wTO = runif(10,-1,1))
 #' Net2 = data.frame(Node.1 = sample(Nodes) , Node.2 = sample(Nodes), wTO = runif(10,-1,1))
 #' Net3 = data.frame(Node.1 = sample(Nodes) , Node.2 = sample(Nodes), wTO = runif(10,-1,1))
 
-#' DiffNet = makeDiffNet (x = list(Net1,Net2,Net3), Code = c('Net1', 'Net2', 'Net3') )
+#' DiffNet = MakeDiffNet (Data = list(Net1,Net2,Net3), Code = c('Net1', 'Net2', 'Net3') )
 #' summary(DiffNet)
 
 # summary <- function(object){
@@ -31,6 +31,9 @@ cat('\n')
   PHI = as.data.frame(table(x$Phi))
   names(PHI)[1] = 'Phi'
 
+  PHI2 = as.data.frame(table(x$Phi2))
+  names(PHI2)[1] = 'Phi2'
+  
   PHI_tilda = as.data.frame(table(x$Phi_tilda))
   names(PHI_tilda)[1] = 'Phi_tilda'
 
@@ -40,5 +43,5 @@ cat('\n')
   # print(PHI)
   # print(PHI_tilda)
   # print(Group)
-  return(list(Phi = PHI, Phi_tilda = PHI_tilda, Group = Group))
+  return(list(Phi = PHI, Phi2 = PHI2, Phi_tilda = PHI_tilda, Group = Group))
 }

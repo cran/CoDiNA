@@ -10,13 +10,13 @@
 #' @examples
 #' Nodes = LETTERS[1:10]
 #' Z = data.frame(Node.1 = sample(Nodes) ,
-#' Node.2 = sample(Nodes), wTO = runif(10,-1,1))
+#' Node.2 = sample(Nodes), cor = runif(10,-1,1))
 #' OrderNames(Z)
 
 OrderNames=function (M){
   # message('Ordering names.')
-  M[,1]= as.character(M$Node.1)
-  M[,2]= as.character(M$Node.2)
+  M[,1]= as.character(M[,1])
+  M[,2]= as.character(M[,2])
   n1 = apply(M[,1:2], 1, min)
   n2 = apply(M[,1:2], 1, max)
   df = data.table::data.table(Node.1 = n1,

@@ -11,14 +11,18 @@ CreateFullBase = function(x, Code){
   FULL_Bases = list()
   NODES_Bases = list()
   for ( i in 1:length(x)){
-    message(i)
+    # message(i)
     X = x[[i]]
-
-      names(X)[1:2] = c('Node.1', 'Node.2')
-
+    if(all(X[3]==0)){
+      message = paste(Code[i], 'contains only links with weight zero. Consider removing this network.')
+      stop(message)
+    }
+    names(X)[1:2] = c('Node.1', 'Node.2')
+    
     NODES_Bases[[i]] = data.frame(Nodes = unique(c(as.character(X$Node.1),
                                                    as.character(X$Node.2))))
-    message(paste('Edges:', nrow(X)))
+    message(paste(Code[i],'contains', nrow(X), 'edges and', nrow(NODES_Bases[[i]]), 'nodes.'))
+    
     if(nrow(X)>0){
       FULL_Bases[[i]] = OrderNames(X)
       names(FULL_Bases[[i]])[3] = as.character(Code[i])

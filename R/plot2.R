@@ -2,8 +2,8 @@
 #' @aliases plot.CoDiNA
 #' @description Categorize the Nodes into Phi and groups categories. Also, creates an interactive view of the CoDiNA network.
 #' @param x Output from MakeDiffNet
-#' @param distance distance to be used can be: Group, all, Phi or Phi_tilda
-#' @param cutoff cutoff to be applied on the distance. By default, this number is 0.33.
+#' @param cutoff.external The cut-off between the clusters (delta from the center to the edge coordinates), the closer to 1, the better.
+#' @param cutoff.internal The cut-off inside the clusters (delta from the theoretical cluster to the edge coordinates), the closer to zero, the better.
 #' @param layout a layout from the igraph package.
 #' @param smooth.edges If the edges should be smoothed or not.
 #' @param sort.by.Phi if the graph should be plotted in the Phi order
@@ -24,25 +24,24 @@
 #' @importFrom plyr arrange join join_all
 #' @importFrom igraph graph_from_data_frame degree E plot.igraph
 #' @importFrom data.table as.data.table
-#' @importFrom magrittr "%>%"
+#' @importFrom magrittr "%>%" "%<>%"
 #' @export
 #' @export plot.CoDiNA
 #' @examples
-#' set.seed(123)
 #' Nodes = LETTERS[1:10]
 #' Net1 = data.frame(Node.1 = sample(Nodes) , Node.2 = sample(Nodes), wTO = runif(10,-1,1))
 #' Net2 = data.frame(Node.1 = sample(Nodes) , Node.2 = sample(Nodes), wTO = runif(10,-1,1))
 #' Net3 = data.frame(Node.1 = sample(Nodes) , Node.2 = sample(Nodes), wTO = runif(10,-1,1))
-#' DiffNet = makeDiffNet (x = list(Net1,Net2,Net3), Code = c('Net1', 'Net2', 'Net3') )
+#' DiffNet = MakeDiffNet (Data = list(Net1,Net2,Net3), Code = c('Net1', 'Net2', 'Net3') )
 
 #' Graph = plot(x = DiffNet,
-#'  cutoff = 0.3, layout = NULL, smooth.edges = TRUE,
+#'  layout = NULL, smooth.edges = TRUE,
 #'  path = NULL, MakeGroups = FALSE, Cluster = FALSE,
 #'  legend = TRUE, manipulation = FALSE, sort.by.Phi = FALSE)
 #' Graph
 #'
 
-plot.CoDiNA = function(x, distance = 'Phi_tilda', cutoff = 0.33,
+plot.CoDiNA = function(x, cutoff.external = 0.8, cutoff.internal = 0.5,
                         layout = NULL, smooth.edges = TRUE,
                         path = NULL, MakeGroups = FALSE,
                         Cluster = FALSE, legend = TRUE,
@@ -51,46 +50,49 @@ plot.CoDiNA = function(x, distance = 'Phi_tilda', cutoff = 0.33,
 {
   `%ni%` <- Negate(`%in%`)
   `%>%` <- magrittr::`%>%`
+  `%<>%` <- magrittr::`%<>%`
+  clean = subset(x, x$Score_Phi_tilde > cutoff.external & x$Score_internal < cutoff.internal )
 
-  Vars = c('Node.1', 'Node.2', paste('distance',distance, sep = '_'), 'Group', 'Phi', 'Phi_tilda')
+  Vars = c('Node.1', 'Node.2', 'Score_Phi_tilde',
+           'Score_internal', 'Phi', 'Phi_tilde')
   # message(Vars)
   if (any(Vars %ni% names(x))) {
     stop("x input is not complete.")
   }
-  distance = by =  paste('distance',distance, sep = '_')
+  Score = by =  'Score_Phi_tilde'
 
-  input_vis = data.frame(subset(x,!is.na(x$Node.1) ,select = Vars))
+  input_vis = data.frame(subset(clean,!is.na(clean$Node.1) ,select = Vars))
 
-  if (is.numeric(cutoff) == FALSE) {
+
+  if (is.numeric(cutoff.external) == FALSE | is.numeric(cutoff.internal) == FALSE) {
     stop("cutoff value must be numeric.")
   }
   if (Cluster %ni% c(TRUE, FALSE)) {
-    stop("Cluster must be T / F.")
+    stop("Cluster must be TRUE or FALSE.")
   }
   if (smooth.edges %ni% c(TRUE, FALSE)) {
-    stop("smooth.edges must be T / F.")
+    stop("smooth.edges must be TRUE or FALSE.")
   }
-  if(cutoff<0.01){
-    input_vis = droplevels(subset(input_vis, abs(input_vis$distance) > 0.01))
-  }
-  if(cutoff>0.01){
-    input_vis = droplevels(subset(input_vis,
-                                  abs(input_vis$distance) > cutoff))
+  if(cutoff.external<0.01){
+      input_vis = droplevels(subset(input_vis, abs(input_vis$Score_Phi_tilde) > 0.01))
   }
   if (nrow(input_vis) <= 2) {
-    stop("Not enough nodes on your network. Choose a lower cutoff.")
+    stop("Not enough nodes on your network. Choose a another cutoff.")
   }
   if (smooth.edges == TRUE) {
     smooth.edges = "enabled"
   }
 
-  input_vis = input_vis[!is.na(input_vis$distance), ]
+  Nodes_Phi = ClusterNodes(DiffNet = x, cutoff.external = cutoff.external, cutoff.internal = cutoff.internal)
+
+  input_vis = input_vis[!is.na(input_vis$Score_Phi_tilde), ]
+  input_vis = input_vis[!is.na(input_vis$Score_internal), ]
+
   ####
   #### getting colors for Phi groups
   ####
-  input_vis$GROUP_FULL = as.factor(apply(cbind(as.character(input_vis$Phi),
-                                               as.character(input_vis$Group)),
-                                         1, paste, collapse = '.'))
+  input_vis$GROUP_FULL = as.factor(input_vis$Phi_tilde)
+
 
   colsC = data.frame(GROUP_FULL = levels(droplevels(subset(input_vis$GROUP_FULL, input_vis$Phi == 'a'))))
   colsS = data.frame(GROUP_FULL = levels(droplevels(subset(input_vis$GROUP_FULL, input_vis$Phi == 'g'))))
@@ -134,7 +136,8 @@ plot.CoDiNA = function(x, distance = 'Phi_tilda', cutoff = 0.33,
   input_vis = droplevels(input_vis)
   nodes <- data.frame(id = sort(unique(c(as.character(input_vis$Node.1),
                                          as.character(input_vis$Node.2)))))
-  gg = igraph::graph_from_data_frame(data.frame(input_vis$Node.1, input_vis$Node.2, weights = input_vis$distance), directed = FALSE)
+  gg = igraph::graph_from_data_frame(data.frame(input_vis$Node.1, input_vis$Node.2, weights = input_vis$Score_Phi_tilde), directed = FALSE)
+
   DEGREE = as.data.frame(igraph::degree(gg))
   if(MakeGroups == FALSE){
     group = 1
@@ -169,7 +172,7 @@ plot.CoDiNA = function(x, distance = 'Phi_tilda', cutoff = 0.33,
   }
   nodes = suppressMessages(plyr::join(nodes, data.frame(id = igraph::V(gg)$name, cluster = group)))
 
-  igraph::E(gg)$weight = abs(input_vis$distance)
+  igraph::E(gg)$weight = abs(input_vis$Score_Phi_tilde)
   names(DEGREE) = "degree"
   DEGREE$id = row.names(DEGREE)
   nodes = suppressMessages(plyr::join(nodes, DEGREE))
@@ -180,11 +183,22 @@ plot.CoDiNA = function(x, distance = 'Phi_tilda', cutoff = 0.33,
   igraph::V(gg)$color = nodes$cluster
 
   nodes$size = nodes$value
+  names(Nodes_Phi) [1]= 'id'
+  nodes = suppressWarnings(suppressMessages( plyr::join(nodes, Nodes_Phi)))
 
-  Df = rbind(data.frame(ID = input_vis$Node.1, Phi = input_vis$Phi),
-             data.frame(ID = input_vis$Node.2, Phi = input_vis$Phi))
+  Nodes1 = data.frame(id = clean$Node.1, Phi_tilde = clean$Phi_tilde, Phi = clean$Phi)
+  Nodes2 = data.frame(id = clean$Node.2, Phi_tilde = clean$Phi_tilde, Phi = clean$Phi)
+  Nodes = rbind(Nodes1, Nodes2)
 
-  Map2 = suppressMessages(data.table::dcast(data = Df, ID ~ Phi))
+
+  Map2 =  data.table::dcast(Nodes, id~Phi, fun.aggregate = length,
+                                value.var = 'Phi')
+  rm(Nodes1)
+  rm(Nodes2)
+  rm(Nodes)
+
+
+
   names(Map2)[1] = 'id'
   if(is.null(Map2$a)){
     Map2$a = 0
@@ -199,73 +213,26 @@ plot.CoDiNA = function(x, distance = 'Phi_tilda', cutoff = 0.33,
   nodes = suppressMessages(plyr::join(nodes, Map2))
 
 
-  Map = data.frame(table(Df$ID, Df$Phi))
-  Z = suppressMessages(aggregate(Map$Freq, by=list(Category=Map$Var1), FUN=max))
-  names(Z) = c('Var1', 'Freq')
-  Group_Node = suppressMessages(plyr::join(Z, Map, match = 'first'))
-  Group_Node = data.frame(id = Group_Node$Var1, groupPhi = Group_Node$Var2)
-  nodes = suppressMessages(plyr::join(nodes, Group_Node))
-
-
-  QUI2 = data.frame(Degree_a= nodes$a,   Degree_b= nodes$b,  Degree_g= nodes$g)
-  V = suppressWarnings(apply(QUI2, 1, chisq.test, p = c(1/3,1/3,1/3)))
-
-  for(no in 1:length(V)){
-    # nodes$p.value_phi[no] = (U[[no]]$p.value)
-    nodes$p.value_phi[no] = (V[[no]]$p.value)
-  }
-  nodes$groupPhi = as.character(nodes$groupPhi)
-  # nodes$p.value.adj = p.adjust(nodes$p.value_phi, method = 'BH')
-  nodes$groupPhi = ifelse(nodes$p.value_phi > 0.05, 'U', nodes$groupPhi)
-
-  Df = rbind(data.frame(ID = input_vis$Node.1, Phi = input_vis$GROUP_FULL),
-             data.frame(ID = input_vis$Node.2, Phi = input_vis$GROUP_FULL))
-
-  Map = data.frame(table(Df$ID, Df$Phi))
-  Map2 = suppressMessages(data.table::dcast(data = Df, ID ~ Phi))
-  names(Map2)[1] = 'id'
-
-  Z = suppressMessages(aggregate(Map$Freq, by=list(Category=Map$Var1), FUN=max))
-  names(Z) = c('Var1', 'Freq')
-  Group_Node = suppressMessages(plyr::join(Z, Map, match = 'first'))
-  Group_Node = data.frame(id = Group_Node$Var1, group = Group_Node$Var2)
-  nodes = suppressMessages(plyr::join(nodes, Group_Node))
-
-  QUI2 = data.frame(Map2[,-1])
-  V = suppressWarnings(apply(QUI2, 1, chisq.test))
-
-  for(no in 1:length(V)){
-    nodes$p.value_group[no] = (V[[no]]$p.value)
-  }
-
-  nodes$group = as.character(nodes$group)
-  nodes$group = ifelse(nodes$p.value_group > 0.05, 'U', nodes$group)
-
-  nodes$GROUP_FULL = nodes$group
-  nodes = suppressMessages(plyr::join(nodes, colormap))
-  nodes$color = ifelse(nodes$groupPhi == 'U',  'grey50', nodes$color)
-  nodes$shape = ifelse(nodes$groupPhi == 'U', 'diamond', nodes$shape)
-
-  # nodes$ID = nodes$id
   nodes$label = nodes$id
   nodes$title = paste0("<p> Node ID: ", nodes$label,
                        "<br>Degree: ", nodes$degree,
                        "<br>Degree a: ", nodes$a,
                        "<br>Degree b: ", nodes$b,
                        "<br>Degree g: ", nodes$g,
-                       '<br>Phi:', nodes$groupPhi,
-                       '<br>Group:', nodes$group,
+                       '<br>Phi:', nodes$Phi,
+                       '<br>Phi_tilde:', nodes$Phi_tilde,
                        "</p>")
   if(sort.by.Phi == TRUE){
     nodes$id = paste(nodes$groupPhi, nodes$group, nodes$id, sep ='_')
 
   }
 
-  nodes$groupPhi <- nodes$Phi <- as.character(nodes$groupPhi)
+  nodes$GROUP_FULL <- nodes$Phi <- as.character(nodes$Phi)
 
-  nodes$color = ifelse(nodes$GROUP_FULL == 'U' & nodes$Phi == 'a',  'green', nodes$color)
-  nodes$color = ifelse(nodes$GROUP_FULL == 'U' & nodes$Phi == 'b',  'red', nodes$color)
-  nodes$color = ifelse(nodes$GROUP_FULL == 'U' & nodes$Phi == 'g',  'blue', nodes$color)
+  nodes$color = ifelse(nodes$Phi == 'a',  'green', 'gray30')
+  nodes$color = ifelse(nodes$Phi == 'b',  'red', nodes$color)
+  nodes$color = ifelse(nodes$Phi == 'g',  'blue', nodes$color)
+  nodes$frame.color = nodes$color
 
   nodes = nodes[order(nodes$id),]
   node1_ID =  data.frame(Node.1 = nodes$label, from = nodes$id)
@@ -277,24 +244,23 @@ plot.CoDiNA = function(x, distance = 'Phi_tilda', cutoff = 0.33,
   edges_ID$L2 = edges_ID[,2]
   edges <- data.frame(from = edges_ID$from, to = edges_ID$to,
                       Label = edges_ID$label, L1 = edges_ID$L1, L2 = edges_ID$L2,
-                      group = edges_ID$Group,
-                      distance = edges_ID$distance,
+                      group = edges_ID$Phi_tilde,
+                      Score = edges_ID$Score_Phi_tilde,
                       Phi = edges_ID$Phi, color = edges_ID$color)
-  wto = abs(edges_ID$distance)
+  wto = abs(edges_ID$Score_Phi_tilde)
   edges$width = 3*abs((wto - min(wto))/(max(wto) -
                                           min(wto)))^4
   nodes = droplevels(nodes)
   edges = droplevels(edges)
   ledges <- data.frame(color = colormap$color,
                        label = colormap$GROUP_FULL,
-                       arrows = '', shape = 'elipse')
+                       arrows = '')
   ledges2 <- data.frame(color = c('green', 'red', 'blue', 'grey'),
                         label = c('a', 'b', 'g', 'U'),
-                        arrows = c("", "", '', ''),
-                        shape = c('triangle', 'square', 'star', 'diamond'))
+                        arrows = c("", "", '', ''))
   ledges2 = rbind(ledges, ledges2)
   edges$title = paste0("<p>Edge: ", edges$Label,
-                       "<br>Distance: ", round(edges$distance, 2),
+                       "<br>Score: ", round(edges$Score, 2),
                        '<br>Group:', edges$group,
                        '<br>Phi:', edges$Phi,"</p>")
 
@@ -313,7 +279,7 @@ plot.CoDiNA = function(x, distance = 'Phi_tilda', cutoff = 0.33,
                                                    style = "width: 200px; height: 26px;\\n   background: #f8f8f8;\\n   color: darkblue;\\n   border:none;\\n   outline:none;"),
                            manipulation = F,
                            # selectedBy = list(variable = 'cluster', multiple = FALSE),
-                           selectedBy = list(variable = 'group', multiple = FALSE),
+                           selectedBy = list(variable = 'Phi_tilde', multiple = FALSE),
                            # collapse = list(enabled = TRUE, clusterOptions =list(Phi = nodes$groupPhi),resetHighlight = TRUE)) %>%
     ) %>%
     visNetwork::visPhysics(enabled = F) %>%
@@ -353,16 +319,15 @@ plot.CoDiNA = function(x, distance = 'Phi_tilda', cutoff = 0.33,
 
 
   nodesout = data.frame(id = nodes$label,
-                        group = nodes$group,
-                        Phi = nodes$groupPhi,
+                        Phi_tilde = nodes$Phi_tilde,
+                        Phi = nodes$Phi,
                         Degree_Total = nodes$degree,
                         Degree_a= nodes$a,
                         Degree_b= nodes$b,
-                        Degree_g= nodes$g,
-                        p.value_phi = nodes$p.value_phi,
-                        p.value_group = nodes$p.value_group)
+                        Degree_g= nodes$g)
+
   edgesout = data.frame(id1 = edges$L1, id2 = edges$L2, Group = edges$group,
-                        Phi = edges$Phi, distance = edges$distance)
+                        Phi = edges$Phi, Score = edges$Score)
   U = (list(Nodes = nodesout, Edges = edgesout, network = network))
   class(U)<- append('CoDiNA.plot', class(U))
   return(U)

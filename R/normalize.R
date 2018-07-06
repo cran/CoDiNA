@@ -8,5 +8,8 @@
 #' Z = runif(10,-10,10)
 #' normalize(Z)
 normalize<-function(m){
-  (m - min(m))/(max(m)-min(m))
+  if(length(m)>1){
+    m =  (m - min(m))/(max(m)-min(m))
+  }
+  else{ m = 1}
 }
