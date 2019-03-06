@@ -11,7 +11,7 @@
 #' @importFrom stats aggregate kmeans
 #'
 #' @examples
-
+#' suppressWarnings(RNGversion("3.5.0"))
 #' Nodes = LETTERS[1:20]
 #' Net1 = data.frame(Node.1 = sample(Nodes) , Node.2 = sample(Nodes), wTO = runif(10,-1,1))
 #' Net2 = data.frame(Node.1 = sample(Nodes) , Node.2 = sample(Nodes), wTO = runif(10,-1,1))
@@ -118,6 +118,7 @@ MakeDiffNet = function(Data, Code, cutoff = 0.33,
   y$Score_Phi = y$distance_Phi
   y$Score_Phi_tilde = y$distance_Phi_tilde
   y$Score_internal = y$distance_internal
+  y$Score_ratio = y$Score_Phi_tilde/y$Score_internal
 
   y = subset(y, select = c('Node.1', 'Node.2', Code,
                            'Phi', 'Phi_tilde',
@@ -125,7 +126,7 @@ MakeDiffNet = function(Data, Code, cutoff = 0.33,
                            'Score_center',
                            'Score_Phi',
                            'Score_Phi_tilde',
-                           'Score_internal'))
+                           'Score_internal', 'Score_ratio'))
 
 
   # class(y)<- append(class(y), 'data.frame')

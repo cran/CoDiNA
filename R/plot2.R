@@ -4,6 +4,8 @@
 #' @param x Output from MakeDiffNet
 #' @param cutoff.external The cut-off between the clusters (delta from the center to the edge coordinates), the closer to 1, the better.
 #' @param cutoff.internal The cut-off inside the clusters (delta from the theoretical cluster to the edge coordinates), the closer to zero, the better.
+#' @param cutoff.ratio The cut-off for the ratio of both scores. Default is set to 1. The greater, the better.
+
 #' @param layout a layout from the igraph package.
 #' @param smooth.edges If the edges should be smoothed or not.
 #' @param sort.by.Phi if the graph should be plotted in the Phi order
@@ -28,6 +30,8 @@
 #' @export
 #' @export plot.CoDiNA
 #' @examples
+#' suppressWarnings(RNGversion("3.5.0"))
+#'
 #' Nodes = LETTERS[1:10]
 #' Net1 = data.frame(Node.1 = sample(Nodes) , Node.2 = sample(Nodes), wTO = runif(10,-1,1))
 #' Net2 = data.frame(Node.1 = sample(Nodes) , Node.2 = sample(Nodes), wTO = runif(10,-1,1))
@@ -41,7 +45,7 @@
 #' Graph
 #'
 
-plot.CoDiNA = function(x, cutoff.external = 0.8, cutoff.internal = 0.5,
+plot.CoDiNA = function(x, cutoff.external = 0, cutoff.internal = 1, cutoff.ratio = 1,
                         layout = NULL, smooth.edges = TRUE,
                         path = NULL, MakeGroups = FALSE,
                         Cluster = FALSE, legend = TRUE,
@@ -51,10 +55,12 @@ plot.CoDiNA = function(x, cutoff.external = 0.8, cutoff.internal = 0.5,
   `%ni%` <- Negate(`%in%`)
   `%>%` <- magrittr::`%>%`
   `%<>%` <- magrittr::`%<>%`
-  clean = subset(x, x$Score_Phi_tilde > cutoff.external & x$Score_internal < cutoff.internal )
+  clean = subset(x, x$Score_Phi_tilde > cutoff.external &
+                   x$Score_internal < cutoff.internal &
+                   x$Score_ratio > cutoff.ratio)
 
   Vars = c('Node.1', 'Node.2', 'Score_Phi_tilde',
-           'Score_internal', 'Phi', 'Phi_tilde')
+           'Score_internal', 'Phi', 'Phi_tilde', 'Score_ratio')
   # message(Vars)
   if (any(Vars %ni% names(x))) {
     stop("x input is not complete.")
@@ -247,7 +253,7 @@ plot.CoDiNA = function(x, cutoff.external = 0.8, cutoff.internal = 0.5,
                       group = edges_ID$Phi_tilde,
                       Score = edges_ID$Score_Phi_tilde,
                       Phi = edges_ID$Phi, color = edges_ID$color)
-  wto = abs(edges_ID$Score_Phi_tilde)
+  wto = abs(edges_ID$Score_ratio)
   edges$width = 3*abs((wto - min(wto))/(max(wto) -
                                           min(wto)))^4
   nodes = droplevels(nodes)

@@ -4,10 +4,10 @@
 \alias{plot.CoDiNA}
 \title{plot.CoDiNA}
 \usage{
-\method{plot}{CoDiNA}(x, cutoff.external = 0.8, cutoff.internal = 0.5,
-  layout = NULL, smooth.edges = TRUE, path = NULL, MakeGroups = FALSE,
-  Cluster = FALSE, legend = TRUE, manipulation = FALSE,
-  sort.by.Phi = FALSE, ...)
+\method{plot}{CoDiNA}(x, cutoff.external = 0, cutoff.internal = 1,
+  cutoff.ratio = 1, layout = NULL, smooth.edges = TRUE,
+  path = NULL, MakeGroups = FALSE, Cluster = FALSE, legend = TRUE,
+  manipulation = FALSE, sort.by.Phi = FALSE, ...)
 }
 \arguments{
 \item{x}{Output from MakeDiffNet}
@@ -15,6 +15,8 @@
 \item{cutoff.external}{The cut-off between the clusters (delta from the center to the edge coordinates), the closer to 1, the better.}
 
 \item{cutoff.internal}{The cut-off inside the clusters (delta from the theoretical cluster to the edge coordinates), the closer to zero, the better.}
+
+\item{cutoff.ratio}{The cut-off for the ratio of both scores. Default is set to 1. The greater, the better.}
 
 \item{layout}{a layout from the igraph package.}
 
@@ -41,6 +43,8 @@ Returns a list contatining: The nodes description, the Edges description and the
 Categorize the Nodes into Phi and groups categories. Also, creates an interactive view of the CoDiNA network.
 }
 \examples{
+suppressWarnings(RNGversion("3.5.0"))
+
 Nodes = LETTERS[1:10]
 Net1 = data.frame(Node.1 = sample(Nodes) , Node.2 = sample(Nodes), wTO = runif(10,-1,1))
 Net2 = data.frame(Node.1 = sample(Nodes) , Node.2 = sample(Nodes), wTO = runif(10,-1,1))

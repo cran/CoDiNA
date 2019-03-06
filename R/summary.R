@@ -27,21 +27,15 @@ summary.CoDiNA <- function(object,...) {
                             as.character(x$Node.2))))
   cat('Nodes', Nodes_n, "\n")
   cat('Links', nrow(x), "\n")
-cat('\n')
+  cat('\n')
   PHI = as.data.frame(table(x$Phi))
   names(PHI)[1] = 'Phi'
 
-  PHI2 = as.data.frame(table(x$Phi2))
-  names(PHI2)[1] = 'Phi2'
-  
-  PHI_tilda = as.data.frame(table(x$Phi_tilda))
-  names(PHI_tilda)[1] = 'Phi_tilda'
+  PHI_tilda = as.data.frame(table(x$Phi_tilde))
+  names(PHI_tilda)[1] = 'Phi_tilde'
 
   Group = as.data.frame(table(x$Group))
   names(Group)[1] = 'Group'
 
-  # print(PHI)
-  # print(PHI_tilda)
-  # print(Group)
-  return(list(Phi = PHI, Phi2 = PHI2, Phi_tilda = PHI_tilda, Group = Group))
+  return(list(Phi = PHI, Phi_tilda = PHI_tilda, Group = Group))
 }

@@ -8,6 +8,7 @@
 #' @export
 #'
 #' @examples
+#' suppressWarnings(RNGversion("3.5.0"))
 
 #' Nodes = LETTERS[1:10]
 #' Net1 = data.frame(Node.1 = sample(Nodes) , Node.2 = sample(Nodes), wTO = runif(10,-1,1))

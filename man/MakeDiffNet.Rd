@@ -22,6 +22,7 @@ Returns a data.table contating: Nodes names, correlation value for each network 
 Categorize links into Phi categories, calculate the distance to the center and also normlize the distance into some categories: Phi and Phi tilda, group and all.
 }
 \examples{
+suppressWarnings(RNGversion("3.5.0"))
 Nodes = LETTERS[1:20]
 Net1 = data.frame(Node.1 = sample(Nodes) , Node.2 = sample(Nodes), wTO = runif(10,-1,1))
 Net2 = data.frame(Node.1 = sample(Nodes) , Node.2 = sample(Nodes), wTO = runif(10,-1,1))
