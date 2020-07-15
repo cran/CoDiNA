@@ -7,7 +7,7 @@
 #' @author Deisy Morselli Gysi <deisy at bioinf.uni-leipzig.de>
 #' @return Returns a data.table contating: Nodes names, correlation value for each network (the input values), the k means cluster that link belongs, the Phi groups (Phi and Phi tilda), the signed group that link belongs to, the unsigned group. The distance to the center, and the distance normalized by: Phi_tilda, Phi, signed group or all data.
 #' @export
-#' @import data.table
+#' @importFrom reshape2 dcast
 #' @importFrom stats aggregate kmeans
 #'
 #' @examples

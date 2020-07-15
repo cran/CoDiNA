@@ -4,10 +4,21 @@
 \alias{plot.CoDiNA}
 \title{plot.CoDiNA}
 \usage{
-\method{plot}{CoDiNA}(x, cutoff.external = 0, cutoff.internal = 1,
-  cutoff.ratio = 1, layout = NULL, smooth.edges = TRUE,
-  path = NULL, MakeGroups = FALSE, Cluster = FALSE, legend = TRUE,
-  manipulation = FALSE, sort.by.Phi = FALSE, ...)
+\method{plot}{CoDiNA}(
+  x,
+  cutoff.external = 0,
+  cutoff.internal = 1,
+  cutoff.ratio = 1,
+  layout = NULL,
+  smooth.edges = TRUE,
+  path = NULL,
+  MakeGroups = FALSE,
+  Cluster = FALSE,
+  legend = TRUE,
+  manipulation = FALSE,
+  sort.by.Phi = FALSE,
+  ...
+)
 }
 \arguments{
 \item{x}{Output from MakeDiffNet}

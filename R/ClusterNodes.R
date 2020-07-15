@@ -7,7 +7,7 @@
 #' @param cutoff.internal The cut-off inside the clusters (delta from the theoretical cluster to the edge coordinates), the closer to zero, the better.
 #' @importFrom stats p.adjust
 #' @importFrom magrittr "%>%" "%<>%"
-#' @importFrom data.table dcast
+#' @importFrom reshape2 dcast
 #' @export
 #'
 #' @examples
@@ -16,77 +16,87 @@
 #' Genes_Phi = ClusterNodes(DiffNet, cutoff.external = 0.5, cutoff.internal = 0.25)
 #' table(Genes_Phi$Phi_tilde)
 #'
-ClusterNodes <- function(DiffNet, cutoff.external = 0.8, cutoff.internal = 0.5){
-  clean = subset(DiffNet, DiffNet$Score_Phi_tilde > cutoff.external & DiffNet$Score_internal < cutoff.internal )
-
-  if(nrow(clean)==0){
-    stop('Please, choose different cut-offs. You have zero nodes to cluster.')
-  }
-  Nodes = data.frame(Node = clean$Node.1, Phi_tilde = clean$Phi_tilde, Phi = clean$Phi)
-  Nodes2 = data.frame(Node = clean$Node.2, Phi_tilde = clean$Phi_tilde, Phi = clean$Phi)
-
-  Nodes = rbind(Nodes, Nodes2)
-
-  NodesPhi_tilde =  data.table::dcast(Nodes, Node~Phi_tilde, fun.aggregate = length,
-                                 value.var = 'Phi_tilde')
-  # message('NodesPhi_tilde')
-  NodesPhi =  data.table::dcast(Nodes, Node~Phi, fun.aggregate = length,
+ClusterNodes = 
+  function(DiffNet, cutoff.external = 0.8, cutoff.internal = 0.5){
+    clean = subset(DiffNet, DiffNet$Score_Phi_tilde > cutoff.external & DiffNet$Score_internal < cutoff.internal )
+    
+    if(nrow(clean)==0){
+      stop('Please, choose different cut-offs. You have zero nodes to cluster.')
+    }
+    Nodes = data.frame(Node = clean$Node.1, Phi_tilde = clean$Phi_tilde, Phi = clean$Phi)
+    Nodes2 = data.frame(Node = clean$Node.2, Phi_tilde = clean$Phi_tilde, Phi = clean$Phi)
+    
+    Nodes = rbind(Nodes, Nodes2)
+    
+    NodesPhi_tilde =  reshape2::dcast(Nodes, Node~Phi_tilde, fun.aggregate = length,
+                                      value.var = 'Phi_tilde')
+    # message('NodesPhi_tilde')
+    NodesPhi =  reshape2::dcast(Nodes, Node~Phi, fun.aggregate = length,
                                 value.var = 'Phi')
-  Chi2 = 1
-  Chi = 1
-
-
-  if (ncol(NodesPhi) > 2){
-    #p = apply(NodesPhi[,-1], 2, sum)#/sum(NodesPhi[,-1])
-    p = rep((1/(ncol(NodesPhi)-1)), ncol(NodesPhi)-1)
-    GP1 = apply(NodesPhi[,-1], 1, function(x){
-      y = names(x)[x==max(x)]
-      y = ifelse(length(y)>1, 'U', y)
-      return(y)
-    })
-    Chi = apply(NodesPhi[,-1], 1, function(x){
-      u = suppressMessages( suppressWarnings( chisq.test(x, p = p, rescale.p = TRUE)$p.value))
-      u = ifelse(is.na(u), 0.99, u)
-      return(u)
-    })
-
+    Chi2 = 1
+    Chi = 1
+    
+    
+    if (ncol(NodesPhi) > 2){
+      #p = apply(NodesPhi[,-1], 2, sum)#/sum(NodesPhi[,-1])
+      p = rep((1/(ncol(NodesPhi)-1)), ncol(NodesPhi)-1)
+      GP1 = apply(NodesPhi[,-1], 1, function(x){
+        y = names(x)[x==max(x)]
+        y = ifelse(length(y)>1, 'U', y)
+        return(y)
+      })
+      Chi = apply(NodesPhi[,-1], 1, function(x){
+        u = suppressMessages( suppressWarnings( chisq.test(x, p = p, rescale.p = TRUE)$p.value))
+        u = ifelse(is.na(u), 0.99, u)
+        return(u)
+      })
+      
+    } else{
+      group_rep = names(NodesPhi)[2]
+      GP1 = rep(group_rep, nrow(NodesPhi))
+    }
+    
+    if (ncol(NodesPhi_tilde) > 2){
+      GP2 = apply(NodesPhi_tilde[,-1], 1, function(x){
+        y = names(x)[x==max(x)]
+        y = ifelse(length(y)>1, 'U', y)
+        return(y)
+      })
+      #p = apply(NodesPhi_tilde[,-1], 2, sum)#/sum(NodesPhi_tilde[,-1])
+      p = rep((1/(ncol(NodesPhi_tilde)-1)), ncol(NodesPhi_tilde)-1)
+      Chi2 = apply(NodesPhi_tilde[,-1], 1, function(x){
+        u = suppressWarnings(suppressMessages( chisq.test(x, p=p, rescale.p = TRUE)$p.value))
+        u = ifelse(is.na(u), 0.99, u)
+        return(u)
+      })
+      
+    }  else{
+      group_rep = names(NodesPhi_tilde)[2]
+      GP1 = rep(group_rep, nrow(NodesPhi_tilde))
+    }
+    
+    
+    NodesPhi_tilde$Phi_tilde = ifelse(p.adjust(Chi2, method = 'BH') < 0.05, GP2, 'U')
+    NodesPhi$Phi  = ifelse(p.adjust(Chi, method = 'BH') < 0.05,  GP1, 'U')
+    NodesPhi = data.frame(Node = NodesPhi$Node,
+                          Phi = NodesPhi$Phi, 
+                          pval_Phi = Chi, 
+                          Group_pval_Phi = GP1)
+    
+    NodesPhi_tilde = data.frame(Node = NodesPhi_tilde$Node,
+                                Phi_tilde = NodesPhi_tilde$Phi_tilde,
+                                pval_Phi_Tilde = Chi2,
+                                Group_pval_Phi_tilde = GP2)
+    
+    Out = suppressMessages( plyr::join(NodesPhi, NodesPhi_tilde))
+    
+    gp = character(length = length(Out))
+    for( i in 1:nrow(Out)){
+      gp[i] = strsplit(as.character(Out$Phi_tilde), "[.]")[[i]][1]
+    }
+    
+    Out$Phi = ifelse(Out$Phi == 'U' & Out$Phi_tilde != 'U', gp, as.character(Out$Phi))
+    
+    return(Out)
   }
-
-  if (ncol(NodesPhi_tilde) > 2){
-    GP2 = apply(NodesPhi_tilde[,-1], 1, function(x){
-      y = names(x)[x==max(x)]
-      y = ifelse(length(y)>1, 'U', y)
-      return(y)
-    })
-    #p = apply(NodesPhi_tilde[,-1], 2, sum)#/sum(NodesPhi_tilde[,-1])
-    p = rep((1/(ncol(NodesPhi_tilde)-1)), ncol(NodesPhi_tilde)-1)
-    Chi2 = apply(NodesPhi_tilde[,-1], 1, function(x){
-      u = suppressWarnings(suppressMessages( chisq.test(x, p=p, rescale.p = TRUE)$p.value))
-      u = ifelse(is.na(u), 0.99, u)
-      return(u)
-    })
-
-  }
-
-
-  NodesPhi_tilde$Phi_tilde = ifelse(p.adjust(Chi2, method = 'BH') < 0.05, GP2, 'U')
-  NodesPhi$Phi  = ifelse(p.adjust(Chi, method = 'BH') < 0.05,  GP1, 'U')
-  NodesPhi = data.frame(Node = NodesPhi$Node,
-                        Phi = NodesPhi$Phi)
-
-  NodesPhi_tilde = data.frame(Node = NodesPhi_tilde$Node,
-                              Phi_tilde = NodesPhi_tilde$Phi_tilde
-                             )
-
-  Out = suppressMessages( plyr::join(NodesPhi, NodesPhi_tilde))
-
-  gp = character(length = length(Out))
-  for( i in 1:nrow(Out)){
-    gp[i] = strsplit(as.character(Out$Phi_tilde), "[.]")[[i]][1]
-  }
-
-  Out$Phi = ifelse(Out$Phi == 'U' & Out$Phi_tilde != 'U', gp, as.character(Out$Phi))
-
-  return(Out)
-}
 

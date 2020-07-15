@@ -20,6 +20,7 @@ Nodes = LETTERS[1:10]
 Z = data.frame(Node.1 = sample(Nodes) ,
 Node.2 = sample(Nodes), cor = runif(10,-1,1))
 OrderNames(Z)
+
 }
 \author{
 Deisy Morselli Gysi <deisy at bioinf.uni-leipzig.de>

@@ -27,6 +27,7 @@
 #' @importFrom igraph graph_from_data_frame degree E plot.igraph
 #' @importFrom data.table as.data.table
 #' @importFrom magrittr "%>%" "%<>%"
+#' @importFrom reshape2 dcast
 #' @export
 #' @export plot.CoDiNA
 #' @examples
@@ -197,7 +198,7 @@ plot.CoDiNA = function(x, cutoff.external = 0, cutoff.internal = 1, cutoff.ratio
   Nodes = rbind(Nodes1, Nodes2)
 
 
-  Map2 =  data.table::dcast(Nodes, id~Phi, fun.aggregate = length,
+  Map2 =  reshape2::dcast(Nodes, id~Phi, fun.aggregate = length,
                                 value.var = 'Phi')
   rm(Nodes1)
   rm(Nodes2)
